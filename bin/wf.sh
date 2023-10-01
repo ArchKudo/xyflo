@@ -12,10 +12,13 @@ function fetchRunAccesionsForBioProject {
     # Get the runs in csv format?
     efetch -format runinfo | \
     
+    # Remove the header line
+    tail -n +2 | \
+    
     # Get the first column from a comma delimited file
     # -d for specifying delimiter
     # -f for specifying column
-    cut -d ',' -f 1 |tee "read_accesions.$1"
+    cut -d ',' -f 1
 }
 
 function buildBowtieIndexFromFASTA {

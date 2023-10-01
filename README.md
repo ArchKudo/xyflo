@@ -22,3 +22,13 @@ curl -fsSL https://code.askimed.com/install/nf-test | bash
 nextflow run wf.nf --bioProjectId PRJNA732531 -resume
 nf-test test tests/wf.nf.test
 ```
+
+## Design Notes
+
+### Interface
+
+- Commandline Parameters
+
+- BioProjectID: String[]
+- ReferenceSequence: String
+- 
