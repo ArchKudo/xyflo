@@ -25,7 +25,7 @@ function buildBowtieIndexFromFASTA {
     bowtie2-build "$1" "db/$1"
 }
 
-function downloadSRAFileForRunAccession {
+function downloadSRAForRunAccession {
     # Download compressed SRA files
     # Requires 1 argument:
     # $1[String] = Run accession number
