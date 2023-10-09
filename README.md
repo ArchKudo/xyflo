@@ -25,10 +25,16 @@ nf-test test tests/wf.nf.test
 
 ## Design Notes
 
-### Interface
-
-- Commandline Parameters
-
-- BioProjectID: String[]
-- ReferenceSequence: String
-- 
+- Current comfort level : Poor
+    - Groovy: Poor
+    - Nextflow: Poor
+    - Bash: Ok
+    - WF: Ok
+    - Docker: Poor
+    - Help from ChatGPT: Poor
+    - Language Server: Poor
+    
+- [ ] Download fastq file using https://github.com/nf-core/fetchngs ?
+    - [ ] How to use it from my pipeline instead of using it from commandline?
+- [ ] Manage files in bash or nextflow?
+- [ ] Poor commenting in bash
