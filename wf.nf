@@ -1,22 +1,74 @@
 #!/usr/bin/env nextflow
-params.bioProjectId = 'PRJEB31266'
-bioProjectIdChan = Channel.of(params.bioProjectId)
+
+// Create a commandline parameter for NCBI's BioProject identifier
+// with default value as PRJEB31266
+params.bioProjectID = 'PRJEB31266'
+
+// Create a commandline parameter for reference sequences fasta file
+// with default value as xylo.fna
+params.referenceSequences = 'data/xylo.fna'
+
+params.runAccessions = 'data/runAccessions.txt'
 
 process fetchRunAccesionsForBioProject {
-    input:
-        val bioProjectId
-
     output:
-        stdout
+        path 'readAccessions.txt'
 
     script:
     """
-    bash $projectDir/wf.sh fetchRunAccesionsForBioProject "$bioProjectId"
+    wf.sh fetchRunAccesionsForBioProject "${params.bioProjectID}" > "readAccessions.txt"
     """
+}
 
+process downloadSRAForRunAccession {
+    input:
+        val runAccession
+    output:
+        val runAccession
+        // path "data/${runAccession}/${runAccession}.sra"
+
+    script:
+    """
+    wf.sh downloadSRAForRunAccession "$runAccession"
+    """
+}
+
+process extractFASTQFromSRAFile {
+    input:
+        val runAccession
+    // val sraFilePath
+    output:
+        // path "pairs/${runAccession}_1.fastq"
+        // path "pairs/${runAccession}_2.fastq"
+
+    script:
+    """
+    # TODO: Don't hardcode mem and threads requirement
+    wf.sh extractFASTQFromSRAFile "$runAccession" "5" "12"
+    """
+}
+
+process alignRunWithBowtie {
+    input:
+        val runAccession
+        val referenceSequences
+    // val pairPaths
+    output:
+        val runAccession
+        // path "aln/${runAccession}.sam"
+
+    script:
+    """
+    wf.sh alignRunWithBowtie "$referenceSequences" "12"
+    """
 }
 
 workflow {
-    resChan = fetchRunAccesionsForBioProject(bioProjectIdChan)
-    resChan.view { it }
+    // fetchRunAccesionsForBioProject
+    Channel
+    .fromPath(params.runAccessions)
+    .splitText(by: 1)
+    .map { it.trim() }
+    | downloadSRAForRunAccession
+    | extractFASTQFromSRAFile
 }
