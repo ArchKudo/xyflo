@@ -1,74 +1,27 @@
 #!/usr/bin/env nextflow
+nextflow.enable.dsl = 2
 
 // Create a commandline parameter for NCBI's BioProject identifier
-// with default value as PRJEB31266
-params.bioProjectID = 'PRJEB31266'
+// with default value as PRJNA1005421
+params.bioProjectID = 'PRJNA1005421'
 
 // Create a commandline parameter for reference sequences fasta file
 // with default value as xylo.fna
 params.referenceSequences = 'data/xylo.fna'
 
-params.runAccessions = 'data/runAccessions.txt'
-
 process fetchRunAccesionsForBioProject {
     output:
-        path 'readAccessions.txt'
+        path 'runAccessions.txt'
 
     script:
     """
-    wf.sh fetchRunAccesionsForBioProject "${params.bioProjectID}" > "readAccessions.txt"
-    """
-}
-
-process downloadSRAForRunAccession {
-    input:
-        val runAccession
-    output:
-        val runAccession
-        // path "data/${runAccession}/${runAccession}.sra"
-
-    script:
-    """
-    wf.sh downloadSRAForRunAccession "$runAccession"
-    """
-}
-
-process extractFASTQFromSRAFile {
-    input:
-        val runAccession
-    // val sraFilePath
-    output:
-        // path "pairs/${runAccession}_1.fastq"
-        // path "pairs/${runAccession}_2.fastq"
-
-    script:
-    """
-    # TODO: Don't hardcode mem and threads requirement
-    wf.sh extractFASTQFromSRAFile "$runAccession" "5" "12"
-    """
-}
-
-process alignRunWithBowtie {
-    input:
-        val runAccession
-        val referenceSequences
-    // val pairPaths
-    output:
-        val runAccession
-        // path "aln/${runAccession}.sam"
-
-    script:
-    """
-    wf.sh alignRunWithBowtie "$referenceSequences" "12"
+    wf.sh fetchRunAccesionsForBioProject "${params.bioProjectID}" > "runAccessions.txt"
     """
 }
 
 workflow {
-    // fetchRunAccesionsForBioProject
-    Channel
-    .fromPath(params.runAccessions)
-    .splitText(by: 1)
-    .map { it.trim() }
-    | downloadSRAForRunAccession
-    | extractFASTQFromSRAFile
+    fetchRunAccesionsForBioProject
+    | map { it.readLines() }
+    | flatten
+    | view
 }
