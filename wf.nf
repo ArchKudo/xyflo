@@ -19,9 +19,22 @@ process fetchRunAccesionsForBioProject {
     """
 }
 
+process downloadSRAForRunAccession {
+    input:
+        val runAccession
+    output:
+        tuple val("${runAccession}"), path("data/${runAccession}/${runAccession}.sra")
+    script:
+    """
+    wf.sh downloadSRAForRunAccession "$runAccession"
+    """
+}
+
 workflow {
-    fetchRunAccesionsForBioProject
-    | map { it.readLines() }
-    | flatten
-    | view
+    s = fetchRunAccesionsForBioProject
+        | map { it.readLines() }
+        | flatten
+        | view
+        | downloadSRAForRunAccession
+        | view
 }
