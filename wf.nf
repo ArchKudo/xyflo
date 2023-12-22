@@ -30,6 +30,33 @@ process downloadSRAForRunAccession {
     """
 }
 
+process extractFASTQFromSRAFile {
+    input:
+        tuple val(runAccession), val(sraFilePath)
+    output:
+        tuple val("${runAccession}"),
+        path("pairs/${runAccession}_1.fastq"),
+        path("pairs/${runAccession}_2.fastq")
+
+    script:
+    """
+    # TODO: Don't hardcode mem and threads requirement
+    wf.sh extractFASTQFromSRAFile "$sraFilePath" "5" "12"
+    """
+}
+
+process alignRunWithBowtie {
+    input:
+        tuple val(runAccession), path(referenceSequences), path(pair_1), path(pair_2)
+    output:
+        tuple val("${runAccession}"), path("aln/${runAccession}.sam")
+
+    script:
+    """
+    wf.sh alignRunWithBowtie "$referenceSequences" "12"
+    """
+}
+
 workflow {
     s = fetchRunAccesionsForBioProject
         | map { it.readLines() }
@@ -37,4 +64,5 @@ workflow {
         | view
         | downloadSRAForRunAccession
         | view
+        | extractFASTQFromSRAFile
 }

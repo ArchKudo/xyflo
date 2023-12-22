@@ -43,7 +43,7 @@ function extractFASTQFromSRAFile {
     # $1[String] = Run accession number
     # $2[Number] = Max memory / 1000 available to fastq command
     # $3[Number] = Number of threads to use
-    fasterq-dump "data/$1/$1.sra" --outdir pairs/ --temp tmp/ \
+    fasterq-dump "$1" --outdir pairs/ --temp tmp/ \
     --bufsize "${2}0MB" --curcache "${2}00MB" --mem "${2}000MB" --threads "$3" \
     --progress --verbose --details --log-level debug
 }
