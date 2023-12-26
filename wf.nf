@@ -46,7 +46,6 @@ process extractFASTQFromSRAFile {
 }
 
 process buildBowtieIndexFromFASTA {
-    publishDir "$projectDir/data/"
     input:
         path referenceSequencesFASTA
     output:
@@ -75,19 +74,13 @@ process alignRunWithBowtie {
 
 workflow {
     index = buildBowtieIndexFromFASTA(Channel.fromPath(params.referenceSequences))
-            // | map { it.join('/') }
-            | view
-    println index.getClass()
 
     align = fetchRunAccesionsForBioProject
             | map { it.readLines() }
             | flatten
             | take(3)
-            // | view
             | downloadSRAForRunAccession
-            // | view
             | extractFASTQFromSRAFile
-            // | view
             | combine(index)
             | alignRunWithBowtie
             | view
