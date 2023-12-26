@@ -45,24 +45,50 @@ process extractFASTQFromSRAFile {
     """
 }
 
+process buildBowtieIndexFromFASTA {
+    publishDir "$projectDir/data/"
+    input:
+        path referenceSequencesFASTA
+    output:
+        tuple path('db'), val("$name")
+    script:
+        name = "$referenceSequencesFASTA.fileName.name"
+        """
+        mkdir -p db/
+        wf.sh buildBowtieIndexFromFASTA "$referenceSequencesFASTA" "db/$name" --threads 12
+        """
+}
+
 process alignRunWithBowtie {
     input:
-        tuple val(runAccession), path(referenceSequences), path(pair_1), path(pair_2)
+        // TODO: Use https://www.nextflow.io/docs/latest/process.html#dynamic-input-file-names
+        tuple val(runAccession), path(pair_1), path(pair_2), path(referenceSequences), val(referenceSequencesName)
     output:
         tuple val("${runAccession}"), path("aln/${runAccession}.sam")
 
     script:
     """
-    wf.sh alignRunWithBowtie "$referenceSequences" "12"
+    mkdir -p aln/
+    wf.sh alignRunWithBowtie "$runAccession" "$pair_1" "$pair_2" "$referenceSequences/$referenceSequencesName" "12"
     """
 }
 
 workflow {
-    s = fetchRunAccesionsForBioProject
-        | map { it.readLines() }
-        | flatten
-        | view
-        | downloadSRAForRunAccession
-        | view
-        | extractFASTQFromSRAFile
+    index = buildBowtieIndexFromFASTA(Channel.fromPath(params.referenceSequences))
+            // | map { it.join('/') }
+            | view
+    println index.getClass()
+
+    align = fetchRunAccesionsForBioProject
+            | map { it.readLines() }
+            | flatten
+            | take(3)
+            // | view
+            | downloadSRAForRunAccession
+            // | view
+            | extractFASTQFromSRAFile
+            // | view
+            | combine(index)
+            | alignRunWithBowtie
+            | view
 }

@@ -22,7 +22,8 @@ function fetchRunAccesionsForBioProject {
 }
 
 function buildBowtieIndexFromFASTA {
-    bowtie2-build "$1" "db/$1"
+    # Build a bowtie index with arguments
+    bowtie2-build "$1" "$2"
 }
 
 function downloadSRAForRunAccession {
@@ -49,11 +50,16 @@ function extractFASTQFromSRAFile {
 }
 
 function alignRunWithBowtie {
-    # Run bowtie with
+    # Run bowtie with following arguments
+    # $1 = Name of aligned sam file
+    # $2 = Name of pair_1
+    # $3 = Name of pair_2
+    # $4 = Name of reference sequence index file
+    # $5 = Number of threads
     bowtie2 \
-    -1 "pairs/$1_1.fastq" -2 "pairs/$1_2.fastq" -S aln/"$1".sam \
-    -x "$2" \
-    --threads "$3" --time \
+    -1 "$2" -2 "$3" -S aln/"$1".sam \
+    -x "$4" \
+    --threads "$5" --time \
     -q --phred33 --local --very-sensitive-local --no-unal \
     -N 1 -L 12 --rfg 5,2
     
