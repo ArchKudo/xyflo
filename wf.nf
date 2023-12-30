@@ -63,12 +63,27 @@ process alignRunWithBowtie {
         // TODO: Use https://www.nextflow.io/docs/latest/process.html#dynamic-input-file-names
         tuple val(runAccession), path(pair_1), path(pair_2), path(referenceSequences), val(referenceSequencesName)
     output:
-        tuple val("${runAccession}"), path("aln/${runAccession}.sam")
+        path("aln/${runAccession}.sam")
 
     script:
     """
     mkdir -p aln/
     wf.sh alignRunWithBowtie "$runAccession" "$pair_1" "$pair_2" "$referenceSequences/$referenceSequencesName" "12"
+    """
+}
+
+process mergeSAMFiles {
+    input:
+        path(alignedSAMFile)
+    output:
+        path('merged.sam')
+    script:
+    println alignedSAMFile.getClass()
+    args = alignedSAMFile.collect { "-I $it" }.join(' ')
+    println args
+    println args.getClass()
+    """
+    picard MergeSamFiles $args -O "merged.sam"
     """
 }
 
@@ -83,5 +98,8 @@ workflow {
             | extractFASTQFromSRAFile
             | combine(index)
             | alignRunWithBowtie
+            | flatten
+            | toList
+            | mergeSAMFiles
             | view
 }

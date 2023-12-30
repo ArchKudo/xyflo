@@ -1,0 +1,16 @@
+name: xyflo
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.7.16
+  - sra-tools
+  - bowtie2
+  - picard
+  - samtools
+  - bcftools
+  - gretel
+  - hanselx
+  - pysam
+  - PyVCF
