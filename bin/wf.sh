@@ -65,6 +65,18 @@ function alignRunWithBowtie {
     
 }
 
+function recoverHaplotypes {
+    # Anything that starts with > followed by any character which is not a space
+    grep -o -E "^>[^ ]+" "$2" | cut -c 2- | while read -r gene; do
+        # Run snpper.py for each gene and save the output to a VCF file
+        python $3 -b "$1" -r "$gene" > "$gene.vcf"
+        bgzip -k -@ 16 "$gene.vcf"
+        tabix "$gene.vcf.gz"
+        gretel "$1" "$gene.vcf.gz" "$gene" --master "$2"
+    done
+}
+
+
 # Stolen: https://stackoverflow.com/questions/8818119
 # Check if the function exists (bash specific)
 if declare -f "$1" > /dev/null

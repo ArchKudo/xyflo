@@ -78,28 +78,102 @@ process mergeSAMFiles {
     output:
         path('merged.sam')
     script:
-    println alignedSAMFile.getClass()
     args = alignedSAMFile.collect { "-I $it" }.join(' ')
-    println args
-    println args.getClass()
     """
     picard MergeSamFiles $args -O "merged.sam"
     """
 }
 
-workflow {
-    index = buildBowtieIndexFromFASTA(Channel.fromPath(params.referenceSequences))
+process convertSAMToBAM {
+    input:
+        path(mergedSAMFile)
+    output:
+        path('merged.bam')
+    script:
+    """
+    samtools view -@ 16 --verbosity 100 -b "$mergedSAMFile" -o "merged.bam"
+    """
+}
 
-    align = fetchRunAccesionsForBioProject
-            | map { it.readLines() }
-            | flatten
-            | take(3)
-            | downloadSRAForRunAccession
-            | extractFASTQFromSRAFile
-            | combine(index)
-            | alignRunWithBowtie
-            | flatten
-            | toList
-            | mergeSAMFiles
-            | view
+process sortBAMFile {
+    input:
+        path(mergedBAMFile)
+    output:
+        path('sorted.bam')
+    script:
+    """
+    samtools sort -m 512M --threads 16 --verbosity 100 -o sorted.bam "$mergedBAMFile"
+    """
+}
+
+process deduplicateBAMFile {
+    input:
+        path(sortedBAMFile)
+    output:
+        path('dedup.sam')
+    script:
+    """
+    picard.jar MarkDuplicates INPUT="$sortedBAMFile" OUTPUT=dedup.bam METRICS_FILE=dedup.metrics
+    """
+}
+
+process createBAMIndexFile {
+    input:
+        path(bamFile)
+    output:
+        tuple path(bamFile), path("${bamFile}.bai")
+    script:
+    """
+    samtools index "$bamFile"
+    """
+}
+
+process pileUpAndVariantCallBAM {
+    input:
+        tuple path(referenceSequence), path(targetBAMFile)
+    output:
+        path('calls.vcf')
+    script:
+    """
+    bcftools mpileup -Ou --threads 12 -f "$referenceSequence" "$targetBAMFile" | \
+    bcftools call --threads 12 -mv -Oz -o calls.vcf
+    """
+}
+
+process recoverHaplotypes {
+    errorStrategy 'ignore'
+    input:
+        tuple path(bamFile), path(bamFileIndex), path(referenceSequence)
+    output:
+        path('out.fasta')
+    script:
+    """
+    wf.sh recoverHaplotypes "$bamFile" "$referenceSequence" "$projectDir/bin/snpper.py"
+    """
+}
+
+workflow {
+    seqChan = Channel.fromPath(params.referenceSequences)
+    index = buildBowtieIndexFromFASTA(seqChan)
+    wf = fetchRunAccesionsForBioProject
+        | map { it.readLines() }
+        | flatten
+        | take(3)
+        | downloadSRAForRunAccession
+        | extractFASTQFromSRAFile
+        | combine(index)
+        | alignRunWithBowtie
+        | flatten
+        | toList
+        | mergeSAMFiles
+        | convertSAMToBAM
+        | createBAMIndexFile
+        | combine(seqChan)
+        // | flatten
+        | recoverHaplotypes
+        | view
+
+    // Use snpper instead
+    // variant = pileUpAndVariantCallBAM(Channel.fromPath(params.referenceSequences).combine(align.first()))
+    // variant | view
 }
